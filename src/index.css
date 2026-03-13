@@ -1,0 +1,125 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-sans: 'DM Sans', system-ui, sans-serif;
+    --font-mono: 'Space Mono', monospace;
+    
+    --background: 40 20% 97%;
+    --foreground: 40 10% 12%;
+    
+    --card: 0 0% 100%;
+    --card-foreground: 40 10% 12%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 40 10% 12%;
+    
+    --primary: 40 15% 18%;
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 40 15% 94%;
+    --secondary-foreground: 40 10% 12%;
+    
+    --muted: 40 10% 94%;
+    --muted-foreground: 40 5% 45%;
+    
+    --accent: 15 65% 63%;
+    --accent-foreground: 0 0% 100%;
+    
+    --destructive: 0 65% 55%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 40 10% 88%;
+    --input: 40 10% 88%;
+    --ring: 15 65% 63%;
+    
+    --radius: 0.625rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    background-blend-mode: overlay;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-sans tracking-tight;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground transition-all duration-200 hover:bg-primary/90 hover:shadow-md active:scale-[0.98];
+  }
+  
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md bg-secondary text-secondary-foreground transition-all duration-200 hover:bg-secondary/80;
+  }
+  
+  .btn-ghost {
+    @apply inline-flex items-center justify-center px-3 py-2 text-sm font-medium rounded-md text-foreground/70 transition-all duration-200 hover:bg-secondary hover:text-foreground;
+  }
+  
+  .input-field {
+    @apply w-full px-3 py-2 bg-white border border-input rounded-md text-foreground placeholder:text-muted-foreground/60 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring;
+  }
+  
+  .card-elevated {
+    @apply bg-card rounded-lg border border-border/60 shadow-card transition-all duration-200;
+  }
+  
+  .card-elevated:hover {
+    @apply shadow-card-hover border-border;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted)) transparent;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted));
+    border-radius: 3px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground));
+  }
+  
+  .animation-delay-100 {
+    animation-delay: 100ms;
+  }
+  
+  .animation-delay-200 {
+    animation-delay: 200ms;
+  }
+  
+  .animation-delay-300 {
+    animation-delay: 300ms;
+  }
+  
+  .animation-delay-400 {
+    animation-delay: 400ms;
+  }
+}
