@@ -26,8 +26,15 @@ export function TaskCard({ task, isDragging, onEdit, onDelete }: TaskCardProps) 
     transition,
   }
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      onEdit?.()
+    }
+  }
+
   return (
-    <div
+    <article
       ref={setNodeRef}
       style={style}
       className={cn(
@@ -36,12 +43,18 @@ export function TaskCard({ task, isDragging, onEdit, onDelete }: TaskCardProps) 
         isDragging || isSortableDragging ? 'opacity-50 shadow-card-drag ring-2 ring-terracotta/30 scale-[1.02]' : 'hover:border-border/80 hover:-translate-y-0.5'
       )}
       onClick={onEdit}
+      onKeyDown={handleKeyDown}
+      role="button"
+      tabIndex={0}
+      aria-label={`Task: ${task.title}. ${task.description ? task.description.substring(0, 50) + '...' : 'No description'}. Press Enter to edit.`}
     >
       <div className="flex items-start gap-2.5">
         <button
           {...attributes}
           {...listeners}
           className="mt-0.5 opacity-0 group-hover:opacity-100 transition-all duration-200 cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-terracotta hover:scale-110"
+          aria-label={`Drag ${task.title}`}
+          tabIndex={-1}
         >
           <GripVertical className="w-4 h-4" />
         </button>
@@ -50,7 +63,7 @@ export function TaskCard({ task, isDragging, onEdit, onDelete }: TaskCardProps) 
           <h4 className="text-sm font-medium text-foreground truncate">{task.title}</h4>
           {task.description && (
             <div className="flex items-center gap-1.5 mt-2 text-xs text-muted-foreground/70">
-              <FileText className="w-3 h-3" />
+              <FileText className="w-3 h-3" aria-hidden="true" />
               <span className="line-clamp-1">{task.description}</span>
             </div>
           )}
@@ -62,7 +75,15 @@ export function TaskCard({ task, isDragging, onEdit, onDelete }: TaskCardProps) 
               e.stopPropagation()
               onEdit?.()
             }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.stopPropagation()
+                onEdit?.()
+              }
+            }}
             className="p-1.5 hover:bg-secondary rounded-md text-muted-foreground/50 hover:text-foreground transition-colors"
+            aria-label={`Edit "${task.title}"`}
+            tabIndex={0}
           >
             <Pencil className="w-3.5 h-3.5" />
           </button>
@@ -71,12 +92,20 @@ export function TaskCard({ task, isDragging, onEdit, onDelete }: TaskCardProps) 
               e.stopPropagation()
               onDelete?.()
             }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.stopPropagation()
+                onDelete?.()
+              }
+            }}
             className="p-1.5 hover:bg-red-50 rounded-md text-muted-foreground/50 hover:text-destructive transition-colors"
+            aria-label={`Delete "${task.title}"`}
+            tabIndex={0}
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
-    </div>
+    </article>
   )
 }

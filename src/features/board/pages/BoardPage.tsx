@@ -14,7 +14,7 @@ import {
 } from '@dnd-kit/core'
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { useBoardStore } from '../store/boardStore'
-import { getBoard, moveTask, createTask, updateTask, deleteTask } from '../services/taskService'
+import { getBoard, moveTask, createTask, updateTask, deleteTask, updateColumn, deleteTasksInColumn } from '../services/taskService'
 import { subscribeToBoard } from '../services/realtimeService'
 import { Column } from '../components/Column'
 import { TaskCard } from '../components/TaskCard'
@@ -67,6 +67,21 @@ export function BoardPage() {
 
   const deleteTaskMutation = useMutation({
     mutationFn: deleteTask,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['board'] })
+    },
+  })
+
+  const updateColumnMutation = useMutation({
+    mutationFn: ({ columnId, updates }: { columnId: string; updates: { title: string } }) =>
+      updateColumn(columnId, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['board'] })
+    },
+  })
+
+  const clearColumnMutation = useMutation({
+    mutationFn: deleteTasksInColumn,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['board'] })
     },
@@ -191,10 +206,19 @@ export function BoardPage() {
     setEditingTask(null)
   }
 
+  const handleRenameColumn = (columnId: string, newTitle: string) => {
+    updateColumnMutation.mutate({ columnId, updates: { title: newTitle } })
+  }
+
+  const handleClearColumn = (columnId: string) => {
+    clearColumnMutation.mutate(columnId)
+  }
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex items-center justify-center h-64" role="status" aria-live="polite">
         <div className="animate-pulse text-muted-foreground">Loading board...</div>
+        <span className="sr-only">Loading board</span>
       </div>
     )
   }
@@ -203,7 +227,11 @@ export function BoardPage() {
 
   return (
     <div className="h-[calc(100vh-7rem)]">
-      <div className="flex gap-4 h-full overflow-x-auto pb-4 scrollbar-thin">
+      <div 
+        className="flex gap-4 h-full overflow-x-auto pb-4 scrollbar-thin"
+        role="application"
+        aria-label="Task board"
+      >
         <DndContext
           sensors={sensors}
           collisionDetection={closestCorners}
@@ -222,6 +250,8 @@ export function BoardPage() {
               onAddTask={() => handleAddTask(column.id)}
               onEditTask={handleEditTask}
               onDeleteTask={handleDeleteTask}
+              onRenameColumn={handleRenameColumn}
+              onClearColumn={handleClearColumn}
             />
           ))}
           

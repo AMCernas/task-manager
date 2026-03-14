@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -21,6 +21,46 @@ interface TaskModalProps {
   onClose: () => void
 }
 
+function useFocusTrap(isOpen: boolean) {
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    const container = containerRef.current
+    if (!container) return
+
+    const focusableElements = container.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    )
+    const firstElement = focusableElements[0]
+    const lastElement = focusableElements[focusableElements.length - 1]
+
+    firstElement?.focus()
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return
+
+      if (e.shiftKey) {
+        if (document.activeElement === firstElement) {
+          e.preventDefault()
+          lastElement?.focus()
+        }
+      } else {
+        if (document.activeElement === lastElement) {
+          e.preventDefault()
+          firstElement?.focus()
+        }
+      }
+    }
+
+    container.addEventListener('keydown', handleKeyDown)
+    return () => container.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen])
+
+  return containerRef
+}
+
 export function TaskModal({ mode, task, onSave, onDelete, onClose }: TaskModalProps) {
   const {
     register,
@@ -34,36 +74,64 @@ export function TaskModal({ mode, task, onSave, onDelete, onClose }: TaskModalPr
     },
   })
 
+  const dialogRef = useFocusTrap(true)
+
+  const handleEscape = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') onClose()
+  }, [onClose])
+
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) onClose()
+  }
+
   useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
     document.addEventListener('keydown', handleEscape)
     return () => document.removeEventListener('keydown', handleEscape)
-  }, [onClose])
+  }, [handleEscape])
 
   const onSubmit = (data: TaskFormData) => {
     onSave(data)
   }
 
+  const titleId = `task-modal-title-${mode}`
+  const descriptionErrorId = 'description-error'
+  const titleErrorId = 'title-error'
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" onClick={onClose} />
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+    >
+      <div 
+        className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" 
+        onClick={handleBackdropClick}
+        aria-hidden="true"
+      />
       
-      <div className="relative bg-white rounded-xl shadow-modal w-full max-w-lg animate-scale-in">
+      <div 
+        ref={dialogRef}
+        className="relative bg-white rounded-xl shadow-modal w-full max-w-lg animate-scale-in"
+        onKeyDown={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between p-5 border-b border-border/40">
-          <h2 className="text-lg font-semibold text-foreground tracking-tight">
+          <h2 
+            id={titleId} 
+            className="text-lg font-semibold text-foreground tracking-tight"
+          >
             {mode === 'create' ? 'New Task' : 'Edit Task'}
           </h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-secondary rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+            aria-label="Close dialog"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
         
-        <form onSubmit={handleSubmit(onSubmit)} className="p-5 space-y-5">
+        <form onSubmit={handleSubmit(onSubmit)} className="p-5 space-y-5" noValidate>
           <div>
             <label htmlFor="title" className="block text-sm font-medium text-foreground mb-2">
               Title
@@ -72,6 +140,8 @@ export function TaskModal({ mode, task, onSave, onDelete, onClose }: TaskModalPr
               {...register('title')}
               id="title"
               autoFocus
+              aria-invalid={!!errors.title}
+              aria-describedby={errors.title ? titleErrorId : undefined}
               className={cn(
                 'input-field text-base',
                 errors.title ? 'border-destructive focus:ring-destructive/30' : ''
@@ -79,7 +149,9 @@ export function TaskModal({ mode, task, onSave, onDelete, onClose }: TaskModalPr
               placeholder="What needs to be done?"
             />
             {errors.title && (
-              <p className="mt-1.5 text-xs text-destructive">{errors.title.message}</p>
+              <p id={titleErrorId} className="mt-1.5 text-xs text-destructive" role="alert">
+                {errors.title.message}
+              </p>
             )}
           </div>
           
@@ -90,6 +162,8 @@ export function TaskModal({ mode, task, onSave, onDelete, onClose }: TaskModalPr
             <textarea
               {...register('description')}
               id="description"
+              aria-invalid={!!errors.description}
+              aria-describedby={errors.description ? descriptionErrorId : undefined}
               rows={5}
               className={cn(
                 'input-field text-sm resize-none leading-relaxed',
@@ -98,7 +172,9 @@ export function TaskModal({ mode, task, onSave, onDelete, onClose }: TaskModalPr
               placeholder="Add more details..."
             />
             {errors.description && (
-              <p className="mt-1.5 text-xs text-destructive">{errors.description.message}</p>
+              <p id={descriptionErrorId} className="mt-1.5 text-xs text-destructive" role="alert">
+                {errors.description.message}
+              </p>
             )}
           </div>
           
@@ -108,6 +184,7 @@ export function TaskModal({ mode, task, onSave, onDelete, onClose }: TaskModalPr
                 type="button"
                 onClick={onDelete}
                 className="inline-flex items-center gap-1.5 text-sm text-destructive hover:text-destructive/80 transition-colors"
+                aria-label={`Delete task "${task?.title}"`}
               >
                 <Trash2 className="w-4 h-4" />
                 Delete task

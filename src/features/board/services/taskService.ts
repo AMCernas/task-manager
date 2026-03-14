@@ -93,3 +93,24 @@ export async function deleteTask(taskId: string) {
 
   if (error) throw error
 }
+
+export async function updateColumn(columnId: string, updates: { title?: string }) {
+  const { data, error } = await supabase
+    .from('columns')
+    .update(updates)
+    .eq('id', columnId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function deleteTasksInColumn(columnId: string) {
+  const { error } = await supabase
+    .from('tasks')
+    .delete()
+    .eq('column_id', columnId)
+
+  if (error) throw error
+}
