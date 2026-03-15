@@ -14,7 +14,7 @@ import {
 } from '@dnd-kit/core'
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { useBoardStore } from '../store/boardStore'
-import { getBoard, moveTask, createTask, updateTask, deleteTask, updateColumn, deleteTasksInColumn } from '../services/taskService'
+import { getBoard, moveTask, createTask, updateTask, deleteTask, updateColumn, deleteTasksInColumn, createColumn, deleteColumn } from '../services/taskService'
 import { subscribeToBoard } from '../services/realtimeService'
 import { Column } from '../components/Column'
 import { TaskCard } from '../components/TaskCard'
@@ -27,6 +27,7 @@ export function BoardPage() {
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [newTaskColumnId, setNewTaskColumnId] = useState<string | null>(null)
+  const [editingColumnId, setEditingColumnId] = useState<string | null>(null)
 
   const { data: boardData, isLoading } = useQuery({
     queryKey: ['board'],
@@ -82,6 +83,20 @@ export function BoardPage() {
 
   const clearColumnMutation = useMutation({
     mutationFn: deleteTasksInColumn,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['board'] })
+    },
+  })
+
+  const createColumnMutation = useMutation({
+    mutationFn: createColumn,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['board'] })
+    },
+  })
+
+  const deleteColumnMutation = useMutation({
+    mutationFn: deleteColumn,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['board'] })
     },
@@ -208,10 +223,19 @@ export function BoardPage() {
 
   const handleRenameColumn = (columnId: string, newTitle: string) => {
     updateColumnMutation.mutate({ columnId, updates: { title: newTitle } })
+    setEditingColumnId(null)
   }
 
   const handleClearColumn = (columnId: string) => {
     clearColumnMutation.mutate(columnId)
+  }
+
+  const handleAddColumn = () => {
+    createColumnMutation.mutate()
+  }
+
+  const handleDeleteColumn = (columnId: string) => {
+    deleteColumnMutation.mutate(columnId)
   }
 
   if (isLoading) {
@@ -244,6 +268,7 @@ export function BoardPage() {
               key={column.id}
               column={column}
               index={index}
+              isEditing={editingColumnId === column.id}
               tasks={tasks
                 .filter((t) => t.column_id === column.id)
                 .sort((a, b) => a.order - b.order)}
@@ -252,8 +277,19 @@ export function BoardPage() {
               onDeleteTask={handleDeleteTask}
               onRenameColumn={handleRenameColumn}
               onClearColumn={handleClearColumn}
+              onDeleteColumn={handleDeleteColumn}
+              onStartEditing={(id) => setEditingColumnId(id)}
+              onStopEditing={() => setEditingColumnId(null)}
             />
           ))}
+          
+          <button
+            onClick={handleAddColumn}
+            className="flex-shrink-0 w-80 p-3 border-2 border-dashed border-border/40 rounded-xl text-muted-foreground hover:text-foreground hover:border-terracotta/50 transition-colors flex items-center justify-center gap-2 font-medium text-sm"
+            aria-label="Add new column"
+          >
+            + Add Column
+          </button>
           
           <DragOverlay>
             {activeTask && (
