@@ -9,23 +9,30 @@ import { Plus, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 interface ColumnProps {
   column: { id: string; title: string }
   tasks: Task[]
+  isEditing: boolean
   onAddTask: () => void
   onEditTask: (task: Task) => void
   onDeleteTask: (taskId: string) => void
   onRenameColumn: (columnId: string, newTitle: string) => void
   onClearColumn: (columnId: string) => void
+  onDeleteColumn: (columnId: string) => void
+  onStartEditing: (columnId: string) => void
+  onStopEditing: () => void
   index: number
 }
 
-export function Column({ column, tasks, onAddTask, onEditTask, onDeleteTask, onRenameColumn, onClearColumn, index }: ColumnProps) {
+export function Column({ column, tasks, isEditing, onAddTask, onEditTask, onDeleteTask, onRenameColumn, onClearColumn, onDeleteColumn, onStartEditing, onStopEditing, index }: ColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: column.id,
   })
 
   const [menuOpen, setMenuOpen] = useState(false)
-  const [isEditing, setIsEditing] = useState(false)
   const [editTitle, setEditTitle] = useState(column.title)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    setEditTitle(column.title)
+  }, [column.title])
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -40,7 +47,7 @@ export function Column({ column, tasks, onAddTask, onEditTask, onDeleteTask, onR
     } else {
       setEditTitle(column.title)
     }
-    setIsEditing(false)
+    onStopEditing()
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -48,7 +55,7 @@ export function Column({ column, tasks, onAddTask, onEditTask, onDeleteTask, onR
       handleRename()
     } else if (e.key === 'Escape') {
       setEditTitle(column.title)
-      setIsEditing(false)
+      onStopEditing()
     }
   }
 
@@ -57,6 +64,18 @@ export function Column({ column, tasks, onAddTask, onEditTask, onDeleteTask, onR
       onClearColumn(column.id)
     }
     setMenuOpen(false)
+  }
+
+  const handleDeleteColumn = () => {
+    if (confirm(`Delete "${column.title}" and all its ${tasks.length} tasks?`)) {
+      onDeleteColumn(column.id)
+    }
+    setMenuOpen(false)
+  }
+
+  const handleStartRename = () => {
+    setMenuOpen(false)
+    onStartEditing(column.id)
   }
 
   const columnLabel = `${column.title} column`
@@ -77,7 +96,6 @@ export function Column({ column, tasks, onAddTask, onEditTask, onDeleteTask, onR
               type="text"
               value={editTitle}
               onChange={(e) => setEditTitle(e.target.value)}
-              onBlur={handleRename}
               onKeyDown={handleKeyDown}
               className="text-sm font-medium text-foreground bg-secondary px-2 py-1 rounded border border-border focus:outline-none focus:ring-1 focus:ring-terracotta w-full"
             />
@@ -109,10 +127,7 @@ export function Column({ column, tasks, onAddTask, onEditTask, onDeleteTask, onR
             >
               <DropdownMenu.Item
                 className="flex items-center gap-2 px-3 py-2 text-sm text-foreground rounded-md cursor-pointer hover:bg-secondary/50 focus:outline-none focus:bg-secondary/50"
-                onClick={() => {
-                  setMenuOpen(false)
-                  setIsEditing(true)
-                }}
+                onClick={handleStartRename}
               >
                 <Pencil className="w-4 h-4" />
                 Rename column
@@ -124,6 +139,14 @@ export function Column({ column, tasks, onAddTask, onEditTask, onDeleteTask, onR
               >
                 <Trash2 className="w-4 h-4" />
                 Clear tasks
+              </DropdownMenu.Item>
+              <DropdownMenu.Separator className="h-px bg-border my-1" />
+              <DropdownMenu.Item
+                className="flex items-center gap-2 px-3 py-2 text-sm text-destructive rounded-md cursor-pointer hover:bg-red-50 focus:outline-none focus:bg-red-50"
+                onClick={handleDeleteColumn}
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete column
               </DropdownMenu.Item>
             </DropdownMenu.Content>
           </DropdownMenu.Portal>

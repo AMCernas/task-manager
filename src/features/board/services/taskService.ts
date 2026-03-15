@@ -114,3 +114,37 @@ export async function deleteTasksInColumn(columnId: string) {
 
   if (error) throw error
 }
+
+export async function createColumn() {
+  const { data: maxOrder } = await supabase
+    .from('columns')
+    .select('order')
+    .eq('board_id', DEFAULT_BOARD_ID)
+    .order('order', { ascending: false })
+    .limit(1)
+    .single()
+
+  const order = (maxOrder?.order ?? -1) + 1
+
+  const { data, error } = await supabase
+    .from('columns')
+    .insert({
+      title: 'New Column',
+      order,
+      board_id: DEFAULT_BOARD_ID,
+    })
+    .select()
+    .single()
+
+  if (error) throw error
+  return data as Column
+}
+
+export async function deleteColumn(columnId: string) {
+  const { error } = await supabase
+    .from('columns')
+    .delete()
+    .eq('id', columnId)
+
+  if (error) throw error
+}
