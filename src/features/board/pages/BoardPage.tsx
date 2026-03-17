@@ -20,9 +20,11 @@ import { Column } from '../components/Column'
 import { TaskCard } from '../components/TaskCard'
 import { Task } from '@/shared/types'
 import { TaskModal } from '@/features/task/components/TaskModal'
+import { useAuthStore } from '@/features/auth/store/authStore'
 
 export function BoardPage() {
   const queryClient = useQueryClient()
+  const { user } = useAuthStore()
   const { columns, tasks, setBoard, moveTaskOptimistic, reorderTasksOptimistic } = useBoardStore()
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
@@ -30,8 +32,9 @@ export function BoardPage() {
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null)
 
   const { data: boardData, isLoading } = useQuery({
-    queryKey: ['board'],
+    queryKey: ['board', user?.id],
     queryFn: getBoard,
+    enabled: !!user,
   })
 
   useEffect(() => {
@@ -41,18 +44,24 @@ export function BoardPage() {
   }, [boardData, setBoard])
 
   useEffect(() => {
+    if (!user) {
+      setBoard([], [])
+    }
+  }, [user, setBoard])
+
+  useEffect(() => {
     const unsubscribe = subscribeToBoard(() => {
-      queryClient.invalidateQueries({ queryKey: ['board'] })
+      queryClient.invalidateQueries({ queryKey: ['board', user?.id] })
     })
 
     return () => unsubscribe()
-  }, [queryClient])
+  }, [queryClient, user])
 
   const createTaskMutation = useMutation({
     mutationFn: ({ columnId, title }: { columnId: string; title: string }) =>
       createTask(columnId, title),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['board'] })
+      queryClient.invalidateQueries({ queryKey: ['board', user?.id] })
       setNewTaskColumnId(null)
     },
   })
@@ -61,7 +70,7 @@ export function BoardPage() {
     mutationFn: ({ taskId, updates }: { taskId: string; updates: { title?: string; description?: string } }) =>
       updateTask(taskId, updates),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['board'] })
+      queryClient.invalidateQueries({ queryKey: ['board', user?.id] })
       setEditingTask(null)
     },
   })
@@ -69,7 +78,7 @@ export function BoardPage() {
   const deleteTaskMutation = useMutation({
     mutationFn: deleteTask,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['board'] })
+      queryClient.invalidateQueries({ queryKey: ['board', user?.id] })
     },
   })
 
@@ -77,28 +86,28 @@ export function BoardPage() {
     mutationFn: ({ columnId, updates }: { columnId: string; updates: { title: string } }) =>
       updateColumn(columnId, updates),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['board'] })
+      queryClient.invalidateQueries({ queryKey: ['board', user?.id] })
     },
   })
 
   const clearColumnMutation = useMutation({
     mutationFn: deleteTasksInColumn,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['board'] })
+      queryClient.invalidateQueries({ queryKey: ['board', user?.id] })
     },
   })
 
   const createColumnMutation = useMutation({
     mutationFn: createColumn,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['board'] })
+      queryClient.invalidateQueries({ queryKey: ['board', user?.id] })
     },
   })
 
   const deleteColumnMutation = useMutation({
     mutationFn: deleteColumn,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['board'] })
+      queryClient.invalidateQueries({ queryKey: ['board', user?.id] })
     },
   })
 
@@ -191,7 +200,7 @@ export function BoardPage() {
         await moveTask(activeId, overColumn.id, newOrder)
       } catch (error) {
         console.error('Failed to move task:', error)
-        queryClient.invalidateQueries({ queryKey: ['board'] })
+        queryClient.invalidateQueries({ queryKey: ['board', user?.id] })
       }
     }
   }

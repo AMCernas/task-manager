@@ -1,21 +1,43 @@
 import { supabase } from '@/lib/supabase'
 import { Column, Task } from '@/shared/types'
+import { getAuthUserId } from '@/features/auth/store/authStore'
 
-const DEFAULT_BOARD_ID = 'default-board'
+async function createDefaultColumns(userId: string) {
+  await supabase.from('columns').insert([
+    { title: 'To Do', order: 0, user_id: userId },
+    { title: 'In Progress', order: 1, user_id: userId },
+    { title: 'Done', order: 2, user_id: userId },
+  ])
+}
 
 export async function getBoard() {
+  const userId = getAuthUserId()
+  if (!userId) throw new Error('User not authenticated')
+
   const { data: columns, error: columnsError } = await supabase
     .from('columns')
     .select('*')
-    .eq('board_id', DEFAULT_BOARD_ID)
+    .eq('user_id', userId)
     .order('order')
 
   if (columnsError) throw columnsError
 
+  if (!columns || columns.length === 0) {
+    await createDefaultColumns(userId)
+
+    const { data: newColumns } = await supabase
+      .from('columns')
+      .select('*')
+      .eq('user_id', userId)
+      .order('order')
+
+    return { columns: newColumns as Column[], tasks: [] as Task[] }
+  }
+
   const { data: tasks, error: tasksError } = await supabase
     .from('tasks')
     .select('*')
-    .in('column_id', columns?.map((c) => c.id) || [])
+    .in('column_id', columns.map((c) => c.id))
     .order('order')
 
   if (tasksError) throw tasksError
@@ -48,6 +70,9 @@ export async function reorderTasksInColumn(
 }
 
 export async function createTask(columnId: string, title: string) {
+  const userId = getAuthUserId()
+  if (!userId) throw new Error('User not authenticated')
+
   const { data: maxOrder } = await supabase
     .from('tasks')
     .select('order')
@@ -64,7 +89,7 @@ export async function createTask(columnId: string, title: string) {
       title,
       column_id: columnId,
       order,
-      board_id: DEFAULT_BOARD_ID,
+      user_id: userId,
     })
     .select()
     .single()
@@ -116,10 +141,13 @@ export async function deleteTasksInColumn(columnId: string) {
 }
 
 export async function createColumn() {
+  const userId = getAuthUserId()
+  if (!userId) throw new Error('User not authenticated')
+
   const { data: maxOrder } = await supabase
     .from('columns')
     .select('order')
-    .eq('board_id', DEFAULT_BOARD_ID)
+    .eq('user_id', userId)
     .order('order', { ascending: false })
     .limit(1)
     .single()
@@ -131,7 +159,7 @@ export async function createColumn() {
     .insert({
       title: 'New Column',
       order,
-      board_id: DEFAULT_BOARD_ID,
+      user_id: userId,
     })
     .select()
     .single()
